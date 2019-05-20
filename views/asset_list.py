@@ -22,6 +22,12 @@ class AssetButton(tk.Button):
 
 
 class AssetRow(tk.Frame):
+    """
+    Accepts asset with properties:
+    asset_id (and others in Asset model)
+    pics a list of Picture objects
+    counts a list of LocationCount objects
+    """
     def __init__(self, parent, asset):
         super().__init__(parent, bd=5, bg="yellow")
         self.grid()
