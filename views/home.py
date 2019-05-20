@@ -1,5 +1,5 @@
 import tkinter as tk
-from .mwidgets import *
+from .mwidgets import init_widgets
 
 
 class HomeWindow(tk.Frame):

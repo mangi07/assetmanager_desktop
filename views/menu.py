@@ -35,7 +35,7 @@ class AssetMenu(tk.Menu):
     
     # refactor into view and controller
     def showImg(self):
-        load = Image.open("media/logo.png")
+        load = Image.open("media/truck.jpg")
         render = ImageTk.PhotoImage(load)
 
         img = tk.Label(self.parent, image=render)
