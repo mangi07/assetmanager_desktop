@@ -1,6 +1,6 @@
 import tkinter as tk
 from PIL import Image, ImageTk
-from .models import model
+from models import models
 
 
 class AssetButton(tk.Button):
@@ -21,7 +21,7 @@ class AssetButton(tk.Button):
         print("Testing")
 
 
-class AssetRow(tk.Frame):
+class AssetRow(tk.LabelFrame):
     """
     Accepts asset with properties:
     asset_id (and others in Asset model)
@@ -29,26 +29,60 @@ class AssetRow(tk.Frame):
     counts a list of LocationCount objects
     """
     def __init__(self, parent, asset):
-        super().__init__(parent, bd=5, bg="yellow")
+        super().__init__(parent, bd=5, bg="#8caef2", text="Asset", padx=5, pady=5)
         self.grid()
         
         # ###############################
-        # refactor into controller
         id = tk.StringVar()
         id.set(asset.asset_id)
         
+        description = tk.StringVar()
+        description.set(asset.description)
+
         img_path = tk.StringVar()
-        img_path.set("media/truck.jpg")
+        img_path.set(asset.pics[0].filepath)
+        img_path2 = tk.StringVar()
+        img_path2.set(asset.pics[1].filepath)
         # ##################################
+        self.row = 0
+        self.col = 0
+        self.colors = ("#7c8eb2", "#bac2d3") # alternate column colors
+        self.color_index = 0
+        self.imgs = []
+
+        self.add_field(id, "Asset ID")
+        self.add_field(description, "Description")
+        self.add_imgs([img_path, img_path2])
         
-        self.asset_id = tk.Label(self, textvariable = id)
-        self.asset_id.grid(row=0)
+
+    def add_field(self, val, label_text):
+        frame = tk.Frame(self, bd=5, bg=self.colors[self.color_index%2])
+        frame.grid(row=self.row, column=self.col)
+        label = tk.Label(frame, text=label_text)
+        label.grid(row=0, column=0)
+        field = tk.Label(frame, textvariable = val)
+        field.grid(row=1, column=0)
+        self.col += 1
+        self.color_index += 1
+
+    def add_imgs(self, paths):
+        frame = tk.Frame(self, bd=5, bg=self.colors[self.color_index%2])
+        frame.grid(row=self.row, column=self.col)
         
-        self.asset_id = tk.Label(self, textvariable = id)
-        self.asset_id.grid(row=0, column=1)
+        label = tk.Label(frame, text="Images")
+        label.grid(row=0, column=0)
+
+        self.init_imgs(paths)
+        label = tk.Label(frame, image=self.imgs[0])
+        label.image = self.imgs[0]
+        label.grid(row=1, column=0)
         
-        load = Image.open(img_path.get())
-        render = ImageTk.PhotoImage(load)
-        self.img = tk.Label(self, image=render)
-        self.img.image = render
-        self.img.grid(row=0, column=2)
+        self.col += 1
+        self.color_index += 1
+
+    def init_imgs(self, paths):
+        for img in paths:
+            i = Image.open(paths[0].get())
+            i.thumbnail((50,50), Image.ANTIALIAS)
+            render = ImageTk.PhotoImage(i)
+            self.imgs.append(render)

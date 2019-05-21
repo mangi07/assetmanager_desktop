@@ -1,32 +1,40 @@
-from ..models import models
+from models import models
 import sqlite3
 
 
 class AssetController:
-    _index = 0
-    
-    _asset_list = []
-    
-    def _get_batch:
-        # TODO: populate from sql query
-        a1 = models.Asset()
-        a1.asset_id = "test_asset_1"
-        a1.description = "Test Asset 1"
+    def getAsset(self):
+        # ###########################
+        # refactor to obtain the following from sql queries
+        asset = models.Asset()
+        asset.asset_id = "dummy_asset1"
+        asset.description = "a;sdfkja;sdgha;sdjf;asdjf;asdfja;ljdfal;sdfja;sldjfa;sjgoiwnfasd;jf;salfj"
         
-        a2 = models.Asset()
-        a2.asset_id = "test_asset_2"
-        a2.description = "Test Asset 2"
+        pic1 = models.Picture()
+        pic1.id = 1
+        pic1.filepath = "media/truck.jpg"
+        pic2 = models.Picture()
+        pic2.id = 2
+        pic2.filepath = "media/logo.png"
+        asset_pics = [pic1, pic2]
         
-        _asset_list.extend([a1,a2])
-    
-    def has_next:
+        # Add locations before this point so recursive __str__ works on Location obj
+        # sql query for all locations
+        loc_count1 = models.LocationCount() # obtain from sql
         
-    def get_next:
-        if len(_asset_list) <= _index
+        loc1 = models.Location()
+        loc1.id = 1
+        loc1.description = "test description"
         
-    def get_pics_with_id(asset_id):
-        # TODO: make list from sql query to get pic paths from asset id
-        return ["media/truck.jpg"]
+        loc_count1.location = loc1 # obtain this object by id from in-memory location objs
+        loc_count1.count = 5
+        loc_count1.audit_date = None # date last audited
+        counts = [loc_count1]
+        # ###########################
+        asset.pics = asset_pics
+        asset.counts = counts
+
+        return asset
 
 # maybe adapt some of this code...
 def insert_from_lists(mlists, column_names, mtable, mcursor):
