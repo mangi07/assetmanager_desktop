@@ -148,7 +148,7 @@ class Asset:
                 self.maint_dir]
 
     
-    def list_column_names():
+    def list_column_names(self):
         return ["id",
                 "asset_id",
                 "description",
