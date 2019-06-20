@@ -62,6 +62,10 @@ inner join invoice on asset_invoice.invoice = invoice.id;
 select count(distinct asset.asset_id) from asset
 inner join asset_invoice on asset_invoice.asset = asset.id;
 
+-- update asset notes and location
+update asset set notes = "Cost and dates are estimates.  Previous location: ELC-8" where asset.id = 5736 limit 1;
+update location_count set location = 249 where lcoation_count.asset=5736;
+
 -- -----------------------
 -- reset tables --
 -- -----------------------
