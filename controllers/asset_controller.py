@@ -18,16 +18,26 @@ class AssetController:
 
         insert = _insert_from_lists(asset_lists, asset.list_column_names(), 'asset', cursor, conn)
 
-    # TODO: refactor this and its used pagination class members out to a Pagination mixin
+    # TODO: refactor this and its used pagination class members out to a Pagination mixin or use class composition
+    def shiftInterval(self, direction):
+        if direction: # forward shift
+            self.right_offset += self.delta
+            self.left_offset += self.delta
+        else:
+            self.left_offset = max(self.left_offset - self.delta, 0)
+            self.right_offset -= self.delta
     def getPagination(self, results_len, getting_next=True):
+        # bug: left offset advances when results of prev page are less than page size
+        assert(self.left_offset < self.right_offset)
         limit = self.delta
+        forward = True
+        backward = False
         
         # case: at the beginning
         if self.left_offset == 0 and getting_next:
-            offset = self.right_offset
-            # shift interval forward by offset
-            self.right_offset += self.delta
-            self.left_offset += self.delta
+            offset = self.left_offset
+            if results_len == self.delta:
+                self.shiftInterval(forward)
             return limit, offset
         # case: fool-proof trying to move backwards from the beginning
         if self.left_offset == 0 and not getting_next:
@@ -36,16 +46,16 @@ class AssetController:
         # case: continue paging forward only if there may be more results
         if results_len == self.delta and getting_next:
             offset = self.left_offset
-            self.right_offset += self.delta
-            self.left_offset += self.delta
+            if results_len == self.delta:
+                self.shiftInterval(forward)
             return limit, offset
-        #else:
-        #    return limit, 
+        elif results_len < self.delta and getting_next:
+            print("got here")
+            return limit, self.left_offset
 
-        # case: contine paging backward
+        # case: continue paging backward
         if not getting_next:
-            self.left_offset = max(self.left_offset - self.delta, 0)
-            self.right_offset -= self.delta
+            self.shiftInterval(backward)
             return limit, self.left_offset
 
         raise Exception("Situation not anticipated!") # TODO: find more specific exception class
