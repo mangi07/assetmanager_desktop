@@ -1,14 +1,14 @@
 from ..models import models
+from .paginator import Paginator
 import sqlite3
 
 
 class AssetController:
     def __init__(self):
         self.currency_factor = 10000000000
-        # pagination
-        self.delta = 5
-        self.left_offset = 0
-        self.right_offset = self.left_offset + self.delta
+        self.MAX_PAGE_SIZE = 5
+        self.paginator = Paginator(self.MAX_PAGE_SIZE)
+        self.assets = []
 
     def addAsset(self, fields):
         asset = self._makeAsset(**fields)
@@ -18,57 +18,13 @@ class AssetController:
 
         insert = _insert_from_lists(asset_lists, asset.list_column_names(), 'asset', cursor, conn)
 
-    # TODO: refactor this and its used pagination class members out to a Pagination mixin or use class composition
-    def shiftInterval(self, direction):
-        if direction: # forward shift
-            self.right_offset += self.delta
-            self.left_offset += self.delta
-        else:
-            self.left_offset = max(self.left_offset - self.delta, 0)
-            self.right_offset -= self.delta
-    def getPagination(self, results_len, getting_next=True):
-        # bug: left offset advances when results of prev page are less than page size
-        assert(self.left_offset < self.right_offset)
-        limit = self.delta
-        forward = True
-        backward = False
-        
-        # case: at the beginning
-        if self.left_offset == 0 and getting_next:
-            offset = self.left_offset
-            if results_len == self.delta:
-                self.shiftInterval(forward)
-            return limit, offset
-        # case: fool-proof trying to move backwards from the beginning
-        if self.left_offset == 0 and not getting_next:
-            return limit, self.left_offset
-
-        # case: continue paging forward only if there may be more results
-        if results_len == self.delta and getting_next:
-            offset = self.left_offset
-            if results_len == self.delta:
-                self.shiftInterval(forward)
-            return limit, offset
-        elif results_len < self.delta and getting_next:
-            print("got here")
-            return limit, self.left_offset
-
-        # case: continue paging backward
-        if not getting_next:
-            self.shiftInterval(backward)
-            return limit, self.left_offset
-
-        raise Exception("Situation not anticipated!") # TODO: find more specific exception class
-
-
-    # TODO: finish refactoring out pagination logic above
     def getAssets(self, getting_next=True):
         """
         getting_next determines pagination direction
         each new call returns the next page (eg: first 5, next 5, next 5...)
         if getting_next, page forwards, else page backwards ...by pagination delta
         """
-        limit, offset = self.getPagination()
+        limit, offset = self.paginator.getPagination(len(self.assets), getting_next)
         select = '''
             select asset.id, asset.asset_id, asset.description, asset.is_current, 
             requisition.status as requisition_status, receiving.status as receiving_status,
@@ -93,20 +49,20 @@ class AssetController:
 
         selectM2M = None # TODO
 
-        conn = sqlite3.connect('./app/assetsdb.sqlite3')
+        # TODO: use config to load db path
+        #conn = sqlite3.connect('./app/assetsdb.sqlite3')
+        conn = sqlite3.connect('./app/assetsdb_use_this.sqlite3')
         try:
             with conn:
                 cursor = conn.execute(select)
-                assets = cursor.fetchall()
+                self.assets = cursor.fetchall()
         except Exception as e:
             print("In asset_controller.getAsset: ")
             print(e)
         conn.close()
-
-        self.results_len = len(assets)
         
-        #print(assets)
-        return assets
+        print(self.assets)
+        return self.assets
 
 
     def getAsset(self):
@@ -124,7 +80,7 @@ class AssetController:
         pic2.filepath = "media/logo.png"
         asset_pics = [pic1, pic2]
         
-        # Add locations before this point so recursive __str__ works on Location obj
+        # TODO: Add locations before this point so recursive __str__ works on Location obj
         # sql query for all locations
         loc_count1 = models.LocationCount() # obtain from sql
         

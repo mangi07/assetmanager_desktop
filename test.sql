@@ -64,7 +64,52 @@ inner join asset_invoice on asset_invoice.asset = asset.id;
 
 -- update asset notes and location
 update asset set notes = "Cost and dates are estimates.  Previous location: ELC-8" where asset.id = 5736 limit 1;
-update location_count set location = 249 where lcoation_count.asset=5736;
+update location_count set location = 249 where location_count.asset=5736;
+
+-- update multiple locations
+-- first get asset ids needed to be updated, then...
+update location_count set location = 455
+where location_count.asset = 5558 or location_count.asset = 5559 or location_count.asset = 5560 
+or location_count.asset = 5561 or location_count.asset = 5562;
+
+-- select all one-to-one related fields for an asset:
+select asset.id, asset.asset_id, asset.description, asset.is_current, 
+            requisition.status as requisition_status, receiving.status as receiving_status,
+            cat_1.name as category_1, cat_2.name as category_2, department.name as department_name,
+            asset.model_number, asset.serial_number, asset.bulk_count,
+            asset.date_placed, asset.date_removed, asset.date_record_created, asset.date_warranty_expires,
+            manufacturer.name as manufacturer_name, supplier.name as supplier_name,
+            asset.cost, asset.shipping, asset.cost_brand_new, asset.life_expectancy_years,
+            purchase_order.number as purchase_order_number,
+            asset.notes, asset.maint_dir
+            from asset
+            left join requisition on asset.requisition = requisition.id
+            left join receiving on asset.receiving = receiving.id
+            left join category as cat_1 on asset.category_1 = cat_1.id
+            left join category as cat_2 on asset.category_2 = cat_2.id
+            left join manufacturer on asset.manufacturer = manufacturer.id
+            left join supplier on asset.supplier = supplier.id
+            left join purchase_order on asset.purchase_order = purchase_order.id
+            left join department on asset.department = department.id
+            limit {} offset {};
+
+-- select related fields such as from location
+select * from asset
+left join location_count on location_count.asset = asset.id
+left join location on location_count.location = location.id
+where location.description like '%Tiyan-105%';
+
+-- or consider combining m2m's with asset listing query and skipping duplicates when forming list data structure in python
+-- eg: asset 1 | related m2m 1
+--     asset 2 | related m2m 2
+--     asset 3 | related m2m 3 ...would result in something like...
+--     assets_list = [ [asset 1, [m2m 1, m2m 2]], [asset 2, [m2m 3]] ]
+select asset.asset_id, asset.is_current, asset.description, asset.notes, location.id, location.description, picture.file_path from asset
+left join location_count on location_count.asset = asset.id
+left join location on location.id = location_count.location
+left join asset_picture on asset_picture.asset = asset.id
+left join picture on picture.id = asset_picture.picture
+where location.description = '211';
 
 -- -----------------------
 -- reset tables --
