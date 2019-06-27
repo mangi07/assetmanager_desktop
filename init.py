@@ -1,5 +1,7 @@
-import tkinter as tk
+#import tkinter as tk
 
-import views.home as app
+#import views.home as app
 
-app.init()
+#app.init()
+
+import app.views.simplegui

@@ -9,6 +9,7 @@
 
 import PySimpleGUI as sg
 from datetime import datetime
+import re
 from ..models import models
 from ..controllers.asset_controller import AssetController
 
@@ -19,29 +20,21 @@ from ..controllers.asset_controller import AssetController
 
 #sg.ChangeLookAndFeel('Dark')
 sg.ChangeLookAndFeel('Topanga')
-"""
-asset_view_layout = [      
-          [sg.Text('Asset Listing')],
+BACKGROUND_COLOR = 'black'
+TEXT_COLOR = 'yellow'
 
-          [sg.Text(f'ID: {asset.asset_id}'), 
-          	sg.Text(f'Description: {asset.description}'),
-          ],      
-          [sg.Text('Address', size=(15, 1)), sg.InputText('')],      
-          [sg.Text('Phone', size=(15, 1)), sg.InputText('')],      
-          [sg.Submit(), sg.Cancel()]      
-         ]
-"""
 
 date_format = 'yyyy-mm-dd hh:mm:ss'
 money_format = '####.##'
 default_bulk_count = 1
 asset_controller = AssetController()
-ADD_ASSET_WINDOW = 1
-VIEW_ASSETS_WINDOW = 2
 
-# #######################################################
+# ##########################################################################################
 # Window layouts
+# ##########################################################################################
 
+# ##################################################
+# Add New Asset: TODO
 def get_asset_input_layout():
 	return [
 		# identification
@@ -74,11 +67,67 @@ def get_asset_input_layout():
 		[sg.Button('Add Asset'), sg.Button('Clear Form')]
 	]
 
+def update_view():
+	window.FindElement('view_description').Update('new text')
+
+# ##################################################
+# Asset Listing, Filtering, and Editing: TODO: refactor into a class or separate module
+AVP = ['view_id_','view_description_'] # Asset View Prefix
+AEP = ['input_id_', 'input_description_'] # Asset Edit Prefix
+
 def get_asset_view_layout():
-	
-	return [
-		[sg.Text('Test'),],
+	prev_results_len = 0
+	assets = asset_controller.getAssets(prev_results_len)
+	'''
+	[
+		(1, '0', 'Split AC, Carrier - FLC Generator 3 Control Room', 1, None, None, 
+		'Assets - Air Conditioning, Split Ductless', None, 'HCA', '38KCE009118/', None, 1, 
+		'2009-01-01 00:00:00', None, '2019-05-14 06:03:59', None, 'Carrier', None, 7000000000000, 
+		None, None, 8, None, '"Some fields estimated. 9000 BTU (9K)"', 1), ...
 	]
+	'''
+	rows = []
+	for i in range(0,5):
+		layout = [
+			[sg.Text('ID: '), sg.Text(' '*30, key=AVP[0]+str(i)), sg.InputText(' '*10, key=AEP[0]+str(i), visible=False)],
+			[sg.Text('Description: '), sg.Text(' '*30, key=AVP[1]+str(i)), sg.InputText(' '*10, key=AEP[1]+str(i), visible=False)],
+			[sg.Text('Test: '), sg.Multiline('', disabled=True, key=f'view_description3{i}')],
+			[sg.Button(f'Edit({i})'), sg.Button(f'Update({i})', visible=False)],
+		]
+		frame = sg.Frame(title=None, layout=layout)
+		rows.append([frame])
+	rows.append([sg.Button('Get Assets'),])
+	#print(rows)
+	layout = [sg.Column(layout=rows, scrollable=True)]
+	return [layout]
+
+asset_input_event = re.compile('Edit\((\d+)\)')
+asset_update_event = re.compile('Update\((\d+)\)')
+
+def asset_input_action(event, window):
+	result = asset_input_event.match(event)
+	if result:
+		i = result.group(1) # The id of the frame showing the asset
+		# set all inputs and update button visible (and hide Edit button on successful operation?)
+		for x in range(0,2):
+			window.Element(AVP[x]+i).Update(visible=False)
+			window.Element(AEP[x]+i).Update(visible=True)
+		window.Element(f'Update({i})').Update(visible=True)
+		window.Element(f'Edit({i})').Update(visible=False)
+
+def asset_update_action(event, window, values):
+	result = asset_update_event.match(event)
+	if result:
+		i = result.group(1)
+		for x in range(0,2):
+			window.Element(AVP[x]+i).Update(visible=True)
+			window.Element(AEP[x]+i).Update(visible=False)
+			# TODO: update values of sg.Text elements with entries from sg.InputText elements
+		# TODO: actually grab inputs and update database
+		window.Element(f'Update({i})').Update(visible=False)
+		window.Element(f'Edit({i})').Update(visible=True)			
+
+
 
 
 # #################################################
@@ -90,32 +139,21 @@ menu = [sg.Menu(menu_def, )]
 
 
 # #################################################
-# Window Management
-def get_window_layout(win_type):
-	if win_type == ADD_ASSET_WINDOW:
-		return get_asset_input_layout()
-	elif win_type == VIEW_ASSETS_WINDOW:
-		return get_asset_view_layout()
-	else:
-		return get_asset_input_layout()
-
-tab1 = get_window_layout(ADD_ASSET_WINDOW)
-tab2 = get_window_layout(VIEW_ASSETS_WINDOW)
+# Tabs Setup
+tab1 = get_asset_input_layout()
+tab2 = get_asset_view_layout()
 tabs = [sg.TabGroup([[sg.Tab('Tab 1', tab1), sg.Tab('Tab 2', tab2)]], tooltip='TIP2')]
-#window.Layout(menu + tabs)
 
 
 # ##################################################
 # GUI Initialization
-print([menu + tabs])
 window = sg.Window('Asset Management', [menu + tabs])
 event, values = window.Read()
 add_asset_default_values = values
 
+
 # ###########################################################################
 # GUI event loop
-
-# TODO: probably need to go back to tabbed layout
 while True:
 	#event, values = windows[curr_window].Read()
 	event, values = window.Read()
@@ -124,10 +162,17 @@ while True:
 		break
 	if event == 'Add Asset':
 		try:
-			print("\n\nField values from form:")
-			print(values)
+			#print("\n\nField values from form:")
+			#print(values)
 			asset_controller.addAsset(values)
 		except Exception as e:
 			sg.Popup('Input Error: ', e)
 	if event == 'Clear Form':
 		window.Fill(add_asset_default_values)
+
+	if event == 'Get Assets':
+		update_view()
+
+	asset_input_action(event, window)
+	asset_update_action(event, window, values)
+
